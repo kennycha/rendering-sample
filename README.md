@@ -2,7 +2,7 @@
 
 > .glb 파일을 받아, three.js 로 rendering 하는 샘플 코드입니다.
 
-## 기본 세팅
+## 앱 렌더링
 
 - [x] Scene 생성
   - [x] 배경색 설정
@@ -22,8 +22,6 @@
 - [ ] Transform Controls 생성 (요소 변화)
   - [ ] `change` 이벤트 리스너 부착
   - [ ] `dragging-changed` 이벤트 리스너 부착
-
-## 앱 렌더링
 
 - [x] id를 통해 `renderingDiv` 선택
   - [x] 크기에 맞게 renderer 크기 조절
@@ -47,4 +45,5 @@
   - `THREE.WebGLRenderer: Context Lost`
   - 삭제한 mesh의 geometry, material dispose 했지만 상관없이 계속 발생
   - ~~브라우저 환경에서만 발생하는 것인지 판단 필요~~ (아님)
-  - 
+  - `useEffect` 를 사용해, 기본 요소의 배치 또한 렌더링 이후로 바꿔서 해결
+  - 이후 .glb 파일 업로드를 통해 3d 요소가 추가될 때도 유지되는지 확인 필요
