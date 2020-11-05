@@ -22,6 +22,7 @@
 - [x] Ground 생성 및 Scene에 추가
   - [x] Texture 로드 및 Ground에 적용
 - [x] Orbit Controls 생성 (카메라 이동)
+  - [x] Zoom Out Max Distance 설정
 - [x] Transform Controls 생성 (요소 변화)
   - [x] `change` 이벤트 리스너 부착
   - [x] `dragging-changed` 이벤트 리스너 부착
@@ -37,12 +38,18 @@
   - [x] .glb | .gltf 형식만 accept
 - [x] File URL 생성
   - [x] 컴포넌트 state(`blobURL`) 변경
-- [x] 3d Model Rendering
+- [x] 3D Model Rendering
   - [x] GLTF Loader 생성
   - [x] URL을 읽어 파일 내 Model을 Scene에 추가
   - [x] Model 및 하위 요소 그림자 추가
   - [x] Skeleton Helper 추가, 가시화 및 Scene에 추가
   - [x] Skeleton Helper Bones에 조작을 위한 Sphere Mesh 추가
+
+## 3D Model 컨트롤
+
+- [ ] 
+
+
 
 ## 이슈
 

@@ -81,6 +81,7 @@ function App() {
     cameraControls.update()
     cameraControls.enablePan = true
     cameraControls.enabled = true
+    cameraControls.maxDistance = 30 // zoom-out limitation
 
     // 트랜스폼 컨트롤러 생성 (bone에 부착된 mesh 움직이는 컨트롤러)
     const transformControls = new TransformControls(camera, renderer.domElement)    
@@ -97,12 +98,14 @@ function App() {
 
     if (blobURL) {
       // 파일 업로드를 통해 blobURL이 생성되었다면
-      const loader = new GLTFLoader()
+      const loader = new GLTFLoader() // loader 생성
       loader.load(blobURL, (gltf) => {
+        console.log('gltf.animations(check AnimationClip.tracks): ')
+        console.log(gltf.animations)
+
         const model = gltf.scene || gltf.scenes[0]
-
-        scene.add(model)
-
+        scene.add(model)  // load 후 model을 scene에 추가
+        
         // gltf.scene 내에 mesh가 존재한다면 그림자 추가
         model.traverse(obj => {
           if (obj.isMesh) {
@@ -120,7 +123,7 @@ function App() {
           const boneMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })
           boneMaterial.depthWrite = false
           boneMaterial.depthTest = false
-          const boneGeometry = new THREE.SphereGeometry()
+          const boneGeometry = new THREE.SphereGeometry(1.5)
           const boneMesh = new THREE.Mesh(boneGeometry, boneMaterial)
 
           // bone에 부착
