@@ -4,7 +4,6 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls'
-//// import { DragControls } from 'three/examples/jsm/controls/DragControls'
 
 const MAP_TYPES = ['map', 'aoMap', 'emissiveMap', 'glossinessMap', 'metalnessMap', 'normalMap', 'roughnessMap', 'specularMap']
 
@@ -19,8 +18,7 @@ const RenderingDiv = styled.div`
 
 function App() {
   const [contents, setContents] = useState([])  // clear하기 위해 content 담아놓은 array
-  const [boneObjs, setBoneObjs] = useState([]) // 컨트롤 가능한 bone 객체들을 담은 array
-  //// const [currentBoneObj, setCurrentBoneObj] = useState(null) // 현재 드래그 중인 bone 객체
+  const [blobURL, setBlobURL] = useState(null)  //  파일 읽었을 떄 생성하는 파일 URL
   
   // 렌더 시에 바탕 및 기본요소 렌더링
   useEffect(() => {
@@ -28,7 +26,7 @@ function App() {
     const renderingDiv = document.body.querySelector('#renderingDiv')
 
     const scene = new THREE.Scene() // scene 생성
-  scene.background = new THREE.Color(0xbbbbbb)  // scene 배경색
+    scene.background = new THREE.Color(0xbbbbbb)  // scene 배경색
     scene.fog = new THREE.Fog(0xbbbbbb, 10, 80) // scene 안개
     
     const fov = 45
@@ -43,6 +41,7 @@ function App() {
     renderer.setPixelRatio(window.devicePixelRatio)
     renderer.shadowMap.enabled = true // 그림자 보이게 설정
     renderer.outputEncoding = THREE.sRGBEncoding  // 결과물 encoding 설정
+    renderer.setSize(renderingDiv.clientWidth, renderingDiv.clientHeight) // renderer 사이즈 설정
 
     // 반구형 조명 및 스포트라이트 생성 및 설정 후 scene에 추가
     const hemiLight = new THREE.HemisphereLight(0x0e0e0e) // 반구형 조명
@@ -84,37 +83,60 @@ function App() {
     cameraControls.enabled = true
 
     // 트랜스폼 컨트롤러 생성 (bone에 부착된 mesh 움직이는 컨트롤러)
-    const transformControls = new TransformControls(camera, renderer.domElement)
-    
-    // 트랜스폼 컨트롤러 이벤트 리스너 부착
+    const transformControls = new TransformControls(camera, renderer.domElement)    
+    // 트랜스폼 컨트롤러 이벤트 리스너 부착 (현재는 효과 없음)
     // 변화 발생 시 렌더링하는 콜백의 경우, 이벤트 리스너가 아닌 useEffect를 통해 할 수 있지 않을까..해서 일단은 주석 처리
     transformControls.addEventListener('change', (event) => {
       // renderer.render(scene, camera)
     })
     transformControls.addEventListener('dragging-changed', event => {
-      cameraControls.enabled = !event.value
+      cameraControls.enabled = !event.value // 요소 드래그 중에는 카메라 이동 불가하도록 설정
     })
-
-    // 트랜스폼 컨트롤러 scene과 contents array에 추가
+    // 트랜스폼 컨트롤러 scene에 추가
     scene.add(transformControls)
-    // setContents([...contents, transformControls])  // 추가하는 경우 에러 발생
 
-    // renderer 사이즈 설정
-    renderer.setSize(renderingDiv.clientWidth, renderingDiv.clientHeight)
-    
+    if (blobURL) {
+      // 파일 업로드를 통해 blobURL이 생성되었다면
+      const loader = new GLTFLoader()
+      loader.load(blobURL, (gltf) => {
+        const model = gltf.scene || gltf.scenes[0]
 
-    //// 예시 mesh (삭제 예정)
-    const geometry = new THREE.BoxGeometry();
-		const material = new THREE.MeshPhongMaterial( { color: 0x00ff00 } );
-		const cube = new THREE.Mesh( geometry, material );
-    scene.add( cube );
-    // setContents([...contents, cube])
+        scene.add(model)
 
+        // gltf.scene 내에 mesh가 존재한다면 그림자 추가
+        model.traverse(obj => {
+          if (obj.isMesh) {
+            obj.castShadow = true
+          }
+        })
+
+        // skeleton helper 생성 및 가시화
+        const skeletonHelper = new THREE.SkeletonHelper(model)
+        skeletonHelper.visible = true
+
+        // skeleton helper의 bones 순회하며, 구형 mesh 추가 및 boneObjs 변경
+        skeletonHelper.bones.forEach(bone => {
+        // Bone에 부착할 Mesh 정의
+          const boneMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })
+          boneMaterial.depthWrite = false
+          boneMaterial.depthTest = false
+          const boneGeometry = new THREE.SphereGeometry()
+          const boneMesh = new THREE.Mesh(boneGeometry, boneMaterial)
+
+          // bone에 부착
+          bone.add(boneMesh)
+        })
+
+        // scene에 skelton helper 추가
+        scene.add(skeletonHelper)
+      })
+    }
 
     // 기존에 rendering 되어 있는 canvas를 삭제
     while (renderingDiv.firstChild) {
       renderingDiv.removeChild(renderingDiv.firstChild)
     }
+
     // contents clear
     contents.forEach(content => {
       // scene에서 삭제
@@ -135,72 +157,21 @@ function App() {
 
     // RenderingDiv 아래에 새로운 canvas를 생성하고, scene과 camera를 추가
     renderingDiv.appendChild(renderer.domElement)
-    renderer.render(scene, camera)
-  }, [])
-
-  // useEffect(() => {
-  //   // boneObjs 변화 시에 re-rendering
     
-  // }, [boneObjs])
+    const animate = () => {
+      // animate loop를 통해 렌더링
+      requestAnimationFrame(animate)
+      renderer.render(scene, camera)
+    }
+    requestAnimationFrame(animate)
+  }, [blobURL])
 
-  // 파일 URL 읽는 함수 생성
-  // const loadFileURL = (fileURL) => {
-  //   const loader = new GLTFLoader()
-  //   loader.load(fileURL, (gltf) => {
-  //     const model = gltf.scene || gltf.scenes[0]
-
-  //     // load한 결과물을 contents state에 추가
-  //     setContents([...contents, gltf])
-  //     setContents([...contents, model])
-
-  //     scene.add(model)
-
-  //     // // gltf.scene 내에 mesh가 존재한다면 그림자 추가
-  //     // gltf.scene.traverse(obj => {
-  //     //   if (obj.isMesh) {
-  //     //     obj.castShadow = true
-  //     //   }
-  //     // })
-
-  //     // // skeleton helper 생성 및 가시화
-  //     // const skeletonHelper = new THREE.SkeletonHelper(gltf.scene)
-  //     // skeletonHelper.visible = true
-
-  //     // // skeleton helper의 bones 순회하며, 구형 mesh 추가 및 boneObjs 변경
-  //     // skeletonHelper.bones.forEach(bone => {
-  //     //   // Bone에 부착할 Mesh 정의
-  //     //   const boneMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })
-  //     //   boneMaterial.depthWrite = false
-  //     //   boneMaterial.depthTest = false
-  //     //   const boneGeometry = new THREE.SphereGeometry()
-  //     //   const boneMesh = new THREE.Mesh(boneGeometry, boneMaterial)
-
-  //     //   // bone에 부착
-  //     //   bone.add(boneMesh)
-  //     // })
-
-  //     // // scene에 skelton helper 추가
-  //     // scene.add(skeletonHelper)
-
-  //     // renderer.render(scene, camera)      
-    
-  //     const animate = () => {
-  //       // loop 는 돌아가는데 렌더링이 안되는 상황
-  //       requestAnimationFrame(animate)
-  //       renderer.render(scene, camera)
-  //     }
-  //     requestAnimationFrame(animate)
-  //   })
-  // }
-
-  // File 업로드 시 gltfObj set
+  // File 업로드 시 URL로 변경해서 컴포넌트 state로 관리
   const onFileChange = (event) => {
     const file = event.target.files[0]
     const fileURL = URL.createObjectURL(file) // blob URL
-    // loadFileURL(fileURL)
-    URL.revokeObjectURL(fileURL)
+    setBlobURL(fileURL) // 읽은 URL을 컴포넌트 state에서 관리
   } 
-
 
   return (
     <>
