@@ -34,7 +34,7 @@
 ## 파일 업로드
 
 - [x] Input 요소 생성
-  - .glb | .gltf 형식만 accept
+  - [x] .glb | .gltf 형식만 accept
 - [x] File URL 생성
   - [x] 컴포넌트 state(`blobURL`) 변경
 - [x] 3d Model Rendering
