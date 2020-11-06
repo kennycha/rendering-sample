@@ -75,6 +75,7 @@
 
 - [ ] Bone에 부착되는 Sphere Mesh의 크기 관련
   - 같은 radius 주는데도 3D Model에 맞지 않게 크게 렌더링 되는 문제
+  - 크기가 오히려 엄청 작아지니까 커져버리는 것 같은데 확인 필요
 
 - [x] Joint Mesh dragstart event 미발생
 
@@ -83,3 +84,7 @@
   - UX 상 좋지 않기 때문에 dragstart 로 구현 필수
   - OrbitControl이 DragControl에 우선적으로 실행되어서 발생한 이슈
     - hoveron/off event 로 OrbitControl 의 enabled 값을 변경하여 해결
+
+- [x] 파일 미업로드 시 에러 발생
+  - 업로드 창을 띄운 후 아무런 파일도 업로드 하지 않고 창을 닫으면 에러 발생
+  - onFileChange 에 if문 추가해서 해결

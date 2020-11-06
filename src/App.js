@@ -272,8 +272,10 @@ function App() {
   // File 업로드 시 URL로 변경해서 컴포넌트 state로 관리
   const onFileChange = (event) => {
     const file = event.target.files[0]
-    const fileURL = URL.createObjectURL(file) // blob URL
-    setBlobURL(fileURL) // 읽은 URL을 컴포넌트 state에서 관리
+    if (file) {
+      const fileURL = URL.createObjectURL(file) // blob URL
+      setBlobURL(fileURL) // 읽은 URL을 컴포넌트 state에서 관리
+    }
   } 
 
   return (
