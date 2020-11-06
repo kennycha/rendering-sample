@@ -47,13 +47,13 @@
 
 ## 3D Model 컨트롤
 
-- [ ] 마우스 컨트롤
-  - [ ] change
-  - [ ] mouseDown
-  - [ ] mouseUp
+- [x] 마우스 컨트롤
+  - [x] hoveron
+  - [x] hoveroff
+  - [x] dragstart
 
-- [ ] 키보드 단축키 등록
-  - [ ] 27 (`ESC`) keydown
+- [x] 키보드 단축키 등록
+  - [x] 27 (`ESC`) keydown
   - [x] 81 (`Q`) keydown
   - [x] 91 (`Cmd or Win`) keydown
   - [x] 91 (`Cmd or Win`) keyup
@@ -76,8 +76,10 @@
 - [ ] Bone에 부착되는 Sphere Mesh의 크기 관련
   - 같은 radius 주는데도 3D Model에 맞지 않게 크게 렌더링 되는 문제
 
-- [ ] Joint Mesh dragstart event 미발생
+- [x] Joint Mesh dragstart event 미발생
 
   - 현재 hover 를 통해 translateController 붙이는 중
 
   - UX 상 좋지 않기 때문에 dragstart 로 구현 필수
+  - OrbitControl이 DragControl에 우선적으로 실행되어서 발생한 이슈
+    - hoveron/off event 로 OrbitControl 의 enabled 값을 변경하여 해결

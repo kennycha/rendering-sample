@@ -87,7 +87,6 @@ function App() {
 
     // 트랜스폼 컨트롤러 생성 (bone에 부착된 mesh 움직이는 컨트롤러)
     const transformControls = new TransformControls(camera, renderer.domElement)    
-    // 트랜스폼 컨트롤러 이벤트 리스너 부착 (현재는 효과 없음)
     // 변화 발생 시 렌더링하는 콜백의 경우, 이벤트 리스너가 아닌 useEffect를 통해 할 수 있지 않을까..해서 일단은 주석 처리
     transformControls.addEventListener('change', (event) => {
       renderer.render(scene, camera)
@@ -105,33 +104,41 @@ function App() {
     const onKeyDown = (event) => {
       switch (event.keyCode) {
         case 27:  // esc
-          // 전역 state에서 잡고 있는 currentBone 초기화
-          console.log('ESC')
+          // 현재 transformControl 붙어 있는 것 제거
+          transformControls.detach(transformControls.object)  
+          // 전역 state에서 잡고 있는 currentBone 초기화도 해야 함
           break
         case 81:  // q
+          // 이동방향 기준 범위 변경
           transformControls.setSpace(transformControls.space === 'local' ? 'world' : 'local')
           break
         case 91:  // cmd or win
+          // 설정한 단위로 변경
           transformControls.setTranslationSnap(10)
           transformControls.setRotationSnap(THREE.MathUtils.degToRad(15))
           break
         case 87:  // w
+          // position 변경 모드
           transformControls.setMode('translate')
           break
         case 69:  // e
+          // rotation 변경 모드
           transformControls.setMode('rotate')
           break
         case 82:  // r
+          // scale 변경 모드
           transformControls.setMode('scale')
           break
         case 187: // +, =, num+
         case 107: 
+          // transformControls 크기 증가
           if (transformControls.size < 2.0) {
             transformControls.setSize(transformControls.size + 0.1)
           }
           break
         case 189: // -, _, num-
         case 109: 
+          // transformControls 크기 감소
           if (transformControls.size > 0.2) {
             transformControls.setSize(transformControls.size-0.1)
           }
@@ -143,6 +150,7 @@ function App() {
     const onKeyUp = (event) => {
       switch (event.keyCode) {
         case 91:
+          // 기본 단위로 변경
           transformControls.setTranslationSnap(null)
           transformControls.setRotationSnap(null)
           break
@@ -193,59 +201,33 @@ function App() {
           
           innerBones.push(bone)
 
-          // skeleton bones를 모두 담았을 때
-          if (innerBones.length === skeletonHelper.bones.length) {           
-            // bones를 param에 넣어서 드래그 컨트롤러 생성
-            const dragControls = new DragControls(innerBones, camera, renderer.domElement)
-
-            // 드래그 컨트롤러 이벤트 리스너 추가
-            dragControls.addEventListener('hoveron', (event) => {
-              transformControls.attach(event.object.parent) // 새로운 bone을 트랜스폼 컨트롤러에 부착
-              console.log(event.object.parent)
-              if (currentBone !== event.object.parent) {  // 원래 조작 중이던 bone이 아니라면
-                setCurrentBone('hi')
-                // console.log(setCurrentBone)
-                // console.log(currentBone)
-                setCurrentBone(event.object.parent) // 조작 중인 bone으로 변경
-                // console.log(currentBone)
-              }
-            })
-
-            dragControls.addEventListener('dragstart', (event) => {
-              console.log('dragstart')  
-              console.log(event.object.parent)
-              
-            })
-          }       
         })
 
+        // skeleton bones를 모두 담았을 때
+        if (innerBones.length === skeletonHelper.bones.length) {           
+          // bones를 param에 넣어서 드래그 컨트롤러 생성
+          const dragControls = new DragControls(innerBones, camera, renderer.domElement)
+
+          // 드래그 컨트롤러 이벤트 리스너 추가
+          dragControls.addEventListener('hoveron', (event) => {
+            cameraControls.enabled = false
+          })
+
+          dragControls.addEventListener('hoveroff', (event) => {
+            cameraControls.enabled = true
+          })
+
+          dragControls.addEventListener('dragstart', (event) => {
+            if (currentBone !== event.object.parent) {
+              transformControls.attach(event.object.parent)
+              setCurrentBone(event.object.parent)
+            }
+          })
+        }       
         // scene에 skelton helper 추가
         scene.add(skeletonHelper)
       })
     } 
-
-    // 기존에 rendering 되어 있는 canvas를 삭제
-    while (renderingDiv.firstChild) {
-      renderingDiv.removeChild(renderingDiv.firstChild)
-    }
-
-    // contents clear
-    contents.forEach(content => {
-      // scene에서 삭제
-      scene.remove(content)
-      // content 및 하위 노드들이 mesh라면 geometry 및 material dispose
-      content.traverse(node => {
-        if (!node.isMesh) return
-        node.geometry.dispose()
-        const materials = Array.isArray(node.material) ? node.material : [node.material]
-        materials.forEach(material => {
-          MAP_TYPES.forEach(mapType => {
-            material[mapType]?.dispose()
-          })
-        })
-      })
-    })
-    setContents([])
 
     // RenderingDiv 아래에 새로운 canvas를 생성하고, scene과 camera를 추가
     renderingDiv.appendChild(renderer.domElement)
@@ -261,6 +243,29 @@ function App() {
       // 키보드 단축키 삭제
       renderingDiv.removeEventListener('keydown', onKeyDown)
       renderingDiv.removeEventListener('keyup', onKeyUp)
+
+      // 기존에 rendering 되어 있는 canvas를 삭제
+      while (renderingDiv.firstChild) {
+        renderingDiv.removeChild(renderingDiv.firstChild)
+      }
+
+      // contents clear
+      contents.forEach(content => {
+        // scene에서 삭제
+        scene.remove(content)
+        // content 및 하위 노드들이 mesh라면 geometry 및 material dispose
+        content.traverse(node => {
+          if (!node.isMesh) return
+          node.geometry.dispose()
+          const materials = Array.isArray(node.material) ? node.material : [node.material]
+          materials.forEach(material => {
+            MAP_TYPES.forEach(mapType => {
+              material[mapType]?.dispose()
+            })
+          })
+        })
+      })
+      setContents([])
     }
   }, [blobURL])
 
