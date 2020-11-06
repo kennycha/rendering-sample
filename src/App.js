@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls'
+import { DragControls } from 'three/examples/jsm/controls/DragControls'
 
 const MAP_TYPES = ['map', 'aoMap', 'emissiveMap', 'glossinessMap', 'metalnessMap', 'normalMap', 'roughnessMap', 'specularMap']
 
@@ -19,6 +20,7 @@ const RenderingDiv = styled.div`
 function App() {
   const [contents, setContents] = useState([])  // clear하기 위해 content 담아놓은 array
   const [blobURL, setBlobURL] = useState(null)  //  파일 읽었을 떄 생성하는 파일 URL
+  const [currentBone, setCurrentBone] = useState(null)  // 현재 드래그한 Bone
   
   // 렌더 시에 바탕 및 기본요소 렌더링
   useEffect(() => {
@@ -88,7 +90,7 @@ function App() {
     // 트랜스폼 컨트롤러 이벤트 리스너 부착 (현재는 효과 없음)
     // 변화 발생 시 렌더링하는 콜백의 경우, 이벤트 리스너가 아닌 useEffect를 통해 할 수 있지 않을까..해서 일단은 주석 처리
     transformControls.addEventListener('change', (event) => {
-      // renderer.render(scene, camera)
+      renderer.render(scene, camera)
     })
     transformControls.addEventListener('dragging-changed', event => {
       cameraControls.enabled = !event.value // 요소 드래그 중에는 카메라 이동 불가하도록 설정
@@ -96,8 +98,66 @@ function App() {
     // 트랜스폼 컨트롤러 scene에 추가
     scene.add(transformControls)
 
+    
+
+
+    // 키보드 이벤트 콜백 함수 정의
+    const onKeyDown = (event) => {
+      switch (event.keyCode) {
+        case 27:  // esc
+          // 전역 state에서 잡고 있는 currentBone 초기화
+          console.log('ESC')
+          break
+        case 81:  // q
+          transformControls.setSpace(transformControls.space === 'local' ? 'world' : 'local')
+          break
+        case 91:  // cmd or win
+          transformControls.setTranslationSnap(10)
+          transformControls.setRotationSnap(THREE.MathUtils.degToRad(15))
+          break
+        case 87:  // w
+          transformControls.setMode('translate')
+          break
+        case 69:  // e
+          transformControls.setMode('rotate')
+          break
+        case 82:  // r
+          transformControls.setMode('scale')
+          break
+        case 187: // +, =, num+
+        case 107: 
+          if (transformControls.size < 2.0) {
+            transformControls.setSize(transformControls.size + 0.1)
+          }
+          break
+        case 189: // -, _, num-
+        case 109: 
+          if (transformControls.size > 0.2) {
+            transformControls.setSize(transformControls.size-0.1)
+          }
+          break  
+        default:
+          break
+      }
+    }
+    const onKeyUp = (event) => {
+      switch (event.keyCode) {
+        case 91:
+          transformControls.setTranslationSnap(null)
+          transformControls.setRotationSnap(null)
+          break
+        default:
+          break
+      }
+    }
+
     if (blobURL) {
       // 파일 업로드를 통해 blobURL이 생성되었다면
+
+      // renderingDiv에 키보드 단축키 등록
+      renderingDiv.addEventListener('keydown', onKeyDown)
+      renderingDiv.addEventListener('keyup', onKeyUp)
+
       const loader = new GLTFLoader() // loader 생성
       loader.load(blobURL, (gltf) => {
         console.log('gltf.animations(check AnimationClip.tracks): ')
@@ -116,24 +176,53 @@ function App() {
         // skeleton helper 생성 및 가시화
         const skeletonHelper = new THREE.SkeletonHelper(model)
         skeletonHelper.visible = true
-
+        
+        const innerBones = []
         // skeleton helper의 bones 순회하며, 구형 mesh 추가 및 boneObjs 변경
-        skeletonHelper.bones.forEach(bone => {
-        // Bone에 부착할 Mesh 정의
+        skeletonHelper.bones.forEach(bone => {         
+          // Bone에 부착할 Mesh 정의
           const boneMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, opacity: 0.5, transparent: true })
-          boneMaterial.depthWrite = false
+          boneMaterial.depthWrite = false // skin 내부에 있어도 보이도록 설정
           boneMaterial.depthTest = false
-          const boneGeometry = new THREE.SphereGeometry(1.5)
+          // mesh 크기를 model에 따라 다르게 만들어야 함 -> 일단은 넘어가고 다음에 변경
+          const boneGeometry = new THREE.SphereGeometry(0.015, 32, 32)
           const boneMesh = new THREE.Mesh(boneGeometry, boneMaterial)
 
           // bone에 부착
-          bone.add(boneMesh)
+          bone.add(boneMesh)        
+          
+          innerBones.push(bone)
+
+          // skeleton bones를 모두 담았을 때
+          if (innerBones.length === skeletonHelper.bones.length) {           
+            // bones를 param에 넣어서 드래그 컨트롤러 생성
+            const dragControls = new DragControls(innerBones, camera, renderer.domElement)
+
+            // 드래그 컨트롤러 이벤트 리스너 추가
+            dragControls.addEventListener('hoveron', (event) => {
+              transformControls.attach(event.object.parent) // 새로운 bone을 트랜스폼 컨트롤러에 부착
+              console.log(event.object.parent)
+              if (currentBone !== event.object.parent) {  // 원래 조작 중이던 bone이 아니라면
+                setCurrentBone('hi')
+                // console.log(setCurrentBone)
+                // console.log(currentBone)
+                setCurrentBone(event.object.parent) // 조작 중인 bone으로 변경
+                // console.log(currentBone)
+              }
+            })
+
+            dragControls.addEventListener('dragstart', (event) => {
+              console.log('dragstart')  
+              console.log(event.object.parent)
+              
+            })
+          }       
         })
 
         // scene에 skelton helper 추가
         scene.add(skeletonHelper)
       })
-    }
+    } 
 
     // 기존에 rendering 되어 있는 canvas를 삭제
     while (renderingDiv.firstChild) {
@@ -167,6 +256,12 @@ function App() {
       renderer.render(scene, camera)
     }
     requestAnimationFrame(animate)
+
+    return () => {
+      // 키보드 단축키 삭제
+      renderingDiv.removeEventListener('keydown', onKeyDown)
+      renderingDiv.removeEventListener('keyup', onKeyUp)
+    }
   }, [blobURL])
 
   // File 업로드 시 URL로 변경해서 컴포넌트 state로 관리
@@ -178,7 +273,7 @@ function App() {
 
   return (
     <>
-      <Input type='file' accept='.glb,.gltf' onChange={onFileChange} />
+      <Input type='file' accept='.glb' onChange={onFileChange} />
       <RenderingDiv id='renderingDiv' />
     </>
   );

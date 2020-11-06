@@ -47,9 +47,22 @@
 
 ## 3D Model 컨트롤
 
-- [ ] 
+- [ ] 마우스 컨트롤
+  - [ ] change
+  - [ ] mouseDown
+  - [ ] mouseUp
 
-
+- [ ] 키보드 단축키 등록
+  - [ ] 27 (`ESC`) keydown
+  - [x] 81 (`Q`) keydown
+  - [x] 91 (`Cmd or Win`) keydown
+  - [x] 91 (`Cmd or Win`) keyup
+  - [x] 87 (`W`) keydown
+  - [x] 69 (`E`) keydown
+  - [x] 82 (`R`) keydown
+  - [x] 187 (`+/=`), 107 (`num+`) keydown
+  - [x] 189 (`-/_`), 109 (`num-`) keydown
+  - [x] 컴포넌트 Unmount 시 단축키 삭제하여 중복 방지
 
 ## 이슈
 
@@ -59,3 +72,12 @@
   - ~~브라우저 환경에서만 발생하는 것인지 판단 필요~~ (아님)
   - `useEffect` 를 사용해, 기본 요소의 배치 또한 렌더링 이후로 바꿔서 해결
     - ~~이후 .glb 파일 업로드를 통해 3d 요소가 추가될 때도 유지되는지 확인 필요~~ (유지)
+
+- [ ] Bone에 부착되는 Sphere Mesh의 크기 관련
+  - 같은 radius 주는데도 3D Model에 맞지 않게 크게 렌더링 되는 문제
+
+- [ ] Joint Mesh dragstart event 미발생
+
+  - 현재 hover 를 통해 translateController 붙이는 중
+
+  - UX 상 좋지 않기 때문에 dragstart 로 구현 필수
